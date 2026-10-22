@@ -49,7 +49,8 @@ class PlatformTests(unittest.TestCase):
     def test_packaged_engine_ignores_browser_cache_override(self):
         with patch.dict(os.environ, {"PLAYWRIGHT_BROWSERS_PATH": "missing-browser-cache"}), patch.object(sys, "frozen", True, create=True):
             support.configure_runtime()
-            self.assertEqual(os.environ["PLAYWRIGHT_BROWSERS_PATH"], "0")
+            expected = str(Path(sys.executable).resolve().parent.parent / "Resources" / "browsers") if sys.platform == "darwin" else "0"
+            self.assertEqual(os.environ["PLAYWRIGHT_BROWSERS_PATH"], expected)
 
     def test_folder_opening_on_each_os(self):
         with tempfile.TemporaryDirectory() as tmp:

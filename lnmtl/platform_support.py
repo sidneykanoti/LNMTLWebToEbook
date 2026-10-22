@@ -77,7 +77,10 @@ def open_folder(path):
 def configure_runtime():
     """Use the browser packaged alongside Playwright, independent of the user's cache."""
     if getattr(sys, "frozen", False):
-        os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
+        if sys.platform == "darwin":
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = str(Path(sys.executable).resolve().parent.parent / "Resources" / "browsers")
+        else:
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
     else:
         import importlib.util
         spec = importlib.util.find_spec("playwright")

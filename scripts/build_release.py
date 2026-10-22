@@ -80,7 +80,7 @@ def main():
     # Explicit source list: private downloaded novels, databases, and existing outputs are never bundled.
     cmd = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--windowed", "--noupx", "--name", NAME,
            "--distpath", ROOT / "dist", "--workpath", work / "pyinstaller", "--specpath", work,
-           "--collect-data", "playwright", "--add-data", f"{notice_file}:.",
+           "--additional-hooks-dir", ROOT / "scripts" / "pyinstaller_hooks", "--add-data", f"{notice_file}:.",
            "--add-data", f"{ROOT / 'PACKAGING.md'}:.", "--add-data", f"{ROOT / 'README.md'}:.",
            "--add-data", f"{ROOT / 'assets'}:assets"]
     for legal_file in ("LICENSE", "NOTICE"):
@@ -98,6 +98,12 @@ def main():
         cmd += ["--onefile"]
     cmd += [ROOT / "app.py"]
     command(cmd)
+    if sys.platform == "darwin":
+        # Preserve Chromium's load commands. PyInstaller cannot rewrite some vendor
+        # dylibs because their Mach-O headers have no spare load-command space.
+        app_bundle = ROOT / "dist" / f"{NAME}.app"
+        command(["ditto", browser_root, app_bundle / "Contents" / "Resources" / "browsers"])
+        command(["codesign", "--force", "--deep", "--sign", os.environ.get("MACOS_SIGNING_IDENTITY", "-"), app_bundle])
     system = {"win32": "windows", "darwin": "macos", "linux": "linux"}[sys.platform]
     machine = platform.machine().lower()
     architecture = {"amd64": "x64", "x86_64": "x64", "aarch64": "arm64"}.get(machine, machine)
