@@ -1,0 +1,16 @@
+LNMTL Web to Ebook
+Copyright (C) 2026 Sidney Kanoti
+
+The original application source is licensed under the GNU General Public
+License, version 3 only (GPL-3.0-only). See LICENSE for the complete terms.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+Third-party libraries, Python, Tcl/Tk, Chromium, and Playwright retain their
+respective licenses. Bundled builds include THIRD_PARTY_NOTICES.md and the
+license notices shipped with those components.
+
+This project is independent of LNMTL. Its software license does not grant
+rights to novels, translations, or other content obtained through the app.
