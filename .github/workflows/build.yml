@@ -49,6 +49,8 @@ jobs:
         shell: python
         run: |
           import os
+          import sys
+          sys.path.insert(0, os.getcwd())
           from lnmtl.platform_support import VERSION
           assert os.environ['GITHUB_REF_NAME'] == 'v' + VERSION, 'Tag must match the app version'
       - name: Build and test standalone app
