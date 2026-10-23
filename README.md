@@ -2,9 +2,13 @@
 
 ![LNMTL Web to Ebook icon](assets/app-128.png)
 
-[Downloads](https://github.com/sidneykanoti/LNMTLWebToEbook/releases) | [User guide](docs/USER_GUIDE.md) | [Donate](https://www.paypal.biz/omnipotentcore)
+[Website](https://lnmtl-web-to-ebook.pages.dev/) | [Downloads](https://github.com/sidneykanoti/LNMTLWebToEbook/releases) | [User guide](docs/USER_GUIDE.md) | [Donate](https://www.paypal.biz/omnipotentcore)
 
-A local desktop app that saves available LNMTL chapters and makes EPUB, PDF, and HTML books. Downloads and original chapter pages stay on your computer.
+A free, independent desktop downloader for whole novels listed on lnmtl.com, with EPUB, PDF, and HTML exports. Select novels, not individual chapters; turn off **Sample first** to download all available indexed chapters. Downloads and original chapter pages stay on your computer. This project is not affiliated with lnmtl.com and does not use BitTorrent or peer-to-peer sharing.
+
+## Why preserve these novels?
+
+The project was created by Sidney Kanoti to help readers preserve LNMTL novel content in personal libraries. The creator believes the site is heading toward shutdown, citing a perceived loss of motivation from the site owner to evolve it and the rise of AI making legacy machine-translation systems redundant. This explains the project's motivation; it is not an official shutdown announcement from lnmtl.com. The app can only download content that remains available from the source site.
 
 ## Open the app
 
