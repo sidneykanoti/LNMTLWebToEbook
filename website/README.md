@@ -23,7 +23,7 @@ Push this folder to a GitHub repository and connect it in Cloudflare Workers & P
 - Root directory: `website` if this folder is committed in the software repository; leave empty if using a dedicated website repository.
 - Build command: `npm run build`
 - Build output directory: `dist`
-- Node version: 22.12 or newer (set `NODE_VERSION` to `22`).
+- Node version: 26 (matches the tested local build and GitHub Actions workflow).
 
 Cloudflare deploys the root `functions` directory automatically. Use Git integration or Wrangler, rather than uploading only `dist`, so the download handlers are included.
 
