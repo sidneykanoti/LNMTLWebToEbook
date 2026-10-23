@@ -57,7 +57,7 @@ Outputs in `release/` include the platform download, SHA-256 checksums, third-pa
 
 Local builds are unsigned development releases. Windows may show an unknown-publisher notice. macOS public distribution needs Developer ID signing and Apple notarization; neither is performed without the owner's certificates/account. The optional `MACOS_SIGNING_IDENTITY` build environment variable enables PyInstaller signing using an identity already available in the build machine's keychain. This does not by itself perform notarization. Do not treat unsigned macOS workflow artifacts as a finished public release.
 
-The Windows executable produced here is locally tested, not yet tested on a separate clean Windows installation. Mac/Linux are prepared build targets until their workflows run and their downloads are tested on those platforms.
+Version 1.0.0 passed the unit tests and packaged application acceptance tests on native Windows x64, macOS Apple Silicon, macOS Intel, and Ubuntu 24.04 x64 GitHub runners. The packaged tests open the GUI and verify SQLite storage, styled EPUB export, and PDF export using bundled Chromium. Testing on these runners does not cover every end-user desktop configuration.
 
 ## Official references
 
