@@ -2,7 +2,7 @@
 
 Astro promotional site, with Cloudflare Pages Functions resolving the latest GitHub release downloads at click time. No database or secrets required.
 
-The page presents the app as an independent whole-novel downloader and personal preservation tool for content listed on lnmtl.com. It explains that individual chapters cannot be selected, shows how to disable Sample first, and attributes the shutdown concerns and preservation motivation to the project creator. It does not present those concerns as an official LNMTL announcement.
+The page presents the app as a whole-novel downloader and personal offline library tool. It explains that individual chapters cannot be selected and shows how to disable Sample first.
 
 ## Develop
 
