@@ -79,7 +79,7 @@ jobs:
   publish:
     name: Publish verified downloads
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && github.repository == 'sidneykanoti/LNMTLWebToEbook'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -99,3 +99,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/publish_release.py
+
+  build-failure:
+    name: Report incomplete release
+    needs: build
+    if: always() && needs.build.result != 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Report missing or failed platform builds
+        run: |
+          echo '::error::A platform build failed or was cancelled. Production publication is blocked; inspect the platform jobs and acceptance-test diagnostics.'
+          echo 'Production release was not published because not all required platform builds passed.' >> "$GITHUB_STEP_SUMMARY"
+          exit 1

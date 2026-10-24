@@ -6,9 +6,9 @@ The same Python source is packaged separately on each operating system. The pack
 
 | Target | Download | How to open |
 | --- | --- | --- |
-| Windows 10/11 x64 | `LNMTLWebToEbook-1.0.0-windows-x64.exe` | Double-click the portable executable. No installer or administrator access is needed. |
-| macOS Apple Silicon | `LNMTLWebToEbook-1.0.0-macos-arm64.dmg` | Open the disk image and drag the app to Applications. |
-| macOS Intel | `LNMTLWebToEbook-1.0.0-macos-x64.dmg` | Same, using the Intel build. |
+| Windows 10/11 x64 | `LNMTLWebToEbook-1.1.0-windows-x64.exe` | Double-click the portable executable. No installer or administrator access is needed. |
+| macOS Apple Silicon | `LNMTLWebToEbook-1.1.0-macos-arm64.dmg` | Open the disk image and drag the app to Applications. |
+| macOS Intel | `LNMTLWebToEbook-1.1.0-macos-x64.dmg` | Same, using the Intel build. |
 | Ubuntu 24.04+ x64 | `.deb` or `.tar.gz` | Install the Debian package with the system's package installer, or extract and run the executable. |
 
 Linux is not a universal binary for every distribution. The first Linux target is Ubuntu 24.04+ x64; other distributions need compatible glibc and Chromium's system libraries. The `.deb` declares these dependencies. The portable tarball requires them to be installed already. A graphical desktop is required. No ARM Linux/Windows artifact is currently configured.
@@ -51,7 +51,7 @@ Outputs in `release/` include the platform download, SHA-256 checksums, third-pa
 
 ## Automated builds
 
-`.github/workflows/build.yml` builds Windows x64, macOS ARM64, macOS Intel, and Ubuntu 24.04 x64 on their respective GitHub runners. It runs on manual dispatch or a `v*` tag. Manual runs save download artifacts. A version tag matching the app version, such as `v1.0.0`, also publishes a GitHub Release after all four targets pass. The publish job verifies the platform reports and checksums before uploading. Downloaded novels, local databases, settings, and the working virtual environment are excluded. Mac/Linux downloads cannot be built or tested natively from the Windows workspace.
+`.github/workflows/build.yml` builds Windows x64, macOS ARM64, macOS Intel, and Ubuntu 24.04 x64 on their respective GitHub runners. It runs on manual dispatch or a `v*` tag. Manual runs save download artifacts. A version tag matching the app version, such as `v1.1.0`, also publishes a GitHub Release after all four targets pass. The publish job verifies the platform reports and checksums before uploading. Downloaded novels, local databases, settings, and the working virtual environment are excluded. Mac/Linux downloads cannot be built or tested natively from the Windows workspace.
 
 ## Signing and distribution status
 
@@ -65,3 +65,19 @@ Version 1.0.0 passed the unit tests and packaged application acceptance tests on
 - [PyInstaller runtime paths](https://pyinstaller.org/en/stable/runtime-information.html)
 - [Playwright browser bundling](https://playwright.dev/python/docs/library#pyinstaller)
 - [GitHub hosted build runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+
+## Website download compatibility (release contract)
+
+Keep desktop builds and publishing in `sidneykanoti/LNMTLWebToEbook`. Website source and deployment belong separately in the private `sidneykanoti/LNMTLWebToEbook-website` repository.
+
+The website queries the public repository's latest stable release and matches asset suffixes. Do not hardcode version links or require website changes per release. Each production release must contain exactly these five application downloads, substituting the application version for `{VERSION}`:
+
+- `LNMTLWebToEbook-{VERSION}-windows-x64.exe`
+- `LNMTLWebToEbook-{VERSION}-macos-arm64.dmg`
+- `LNMTLWebToEbook-{VERSION}-macos-x64.dmg`
+- `LNMTLWebToEbook-{VERSION}-linux-x64.tar.gz`
+- `LNMTLWebToEbook-{VERSION}-linux-x64.deb`
+
+Keep these platform suffixes unchanged; additional build suffixes are not supported. Checksums, source packages, and other supporting files may be uploaded separately. The publisher rejects missing or extra application downloads, failed acceptance tests, and incomplete checksum inventories. If a native build fails or is missing, report the failure and do not publish an incomplete production release.
+
+The publisher creates or resumes a draft, uploads every asset, verifies the remote application names and uploaded sizes, then publishes explicitly as a regular, non-prerelease release marked latest. An upload or validation failure leaves the release as a draft. Existing public releases and prereleases are not modified by this production publisher; keep those workflows separate.

@@ -20,6 +20,18 @@ For this source checkout, double-click **Start Library.cmd**. On a fresh Windows
 
 **Load catalogue** collects the novel list from all catalogue pages. It does not download chapters. Use the search field and Ctrl/Shift selection to choose several novels for sequential downloads. Pause safely between requests; resume skips chapters already saved. Reopening the app also keeps progress. Refresh the novel index to discover new chapters before downloading updates.
 
+## Archive the whole catalogue
+
+Choose **Download entire catalogue** to collect all novels and download their indexed chapters sequentially. This downloads full novels even when **Sample first** is enabled. The queue is saved in the current library and skips chapters already downloaded.
+
+- **Resume queue** continues after a pause or interruption. Completed jobs are skipped; failed novels get up to three more attempts.
+- **Resume queue when app opens** enables automatic continuation on the next launch. It is off initially. The computer must remain awake and the app must be open to make progress.
+- **Export each completed novel** saves books automatically using the selected EPUB/PDF/HTML formats. These choices are saved with each queued novel and survive restarts. Partial novels are not automatically exported; manual export remains available.
+- Overall progress shows completed novels, failures, and saved chapters across indexed novels. The chapter total grows as more novels are indexed; it is not a fixed whole-site total at startup.
+- **Queue details** shows saved errors. A failed novel does not stop others. Site access blocks stop the queue; no protection is bypassed.
+
+The app keeps one queue runner per library and bounds the on-screen log for long sessions. Whole-site archives can take days and substantial disk space. The queue, chapter index, and downloads remain local.
+
 ## Support this project
 
 The app is free to use. Feel free to donate if you've found this software useful. The **Donate** button opens [the project's PayPal page](https://www.paypal.biz/omnipotentcore) in your default browser. All features remain available without contributing. Payments are handled on PayPal's website; the app does not collect payment details or track contributions.
@@ -51,9 +63,9 @@ The application preserves all successfully saved chapters, including chapters th
 
 ## Download behavior
 
-One request at a time, at least two seconds between request starts, with bounded retries and backoff. A blocked request stops the job rather than attempting to bypass protection. Network failures are recorded and retried on the next download run. Indexing is committed only after every volume has passed its reported chapter-count checks. A cancelled index can be restarted; completed chapter downloads are committed individually.
+One request at a time, at least two seconds between request starts, with bounded retries and backoff. A blocked request stops the job rather than attempting to bypass protection. Queued novels are retried automatically up to three times per run, with waits between attempts while other novels continue. **Resume queue** retries unfinished and failed jobs. Indexing is committed only after every volume has passed its reported chapter-count checks. A cancelled index can be restarted; completed chapter downloads are committed individually.
 
-The app is local software, not a public web service. No account or cloud upload is required. Bulk downloading the whole catalogue is a separate deliberate choice: select the novels and disable sample mode.
+The app is local software, not a public web service. No account or cloud upload is required. Choose **Download entire catalogue** to load the full catalogue and save a persistent full-download queue. This button ignores sample mode. With sample mode off, **Download / resume selected** also queues the selected novels.
 
 ## Command-line use
 
@@ -69,7 +81,7 @@ Use `--library <directory>` before the command for a separate archive. The app a
 
 ## Current limits
 
-Releases support only the operating systems and CPU architectures listed in the user guide. Public distribution signing/notarization is not configured. There is no automated Cloudflare challenge handling. Source HTML/API changes may require parser updates. The default colors reflect LNMTL's published light reading theme rather than individual browser theme customizations. PDFs have a linked contents page; the EPUB has volume-grouped navigation. Cover artwork is not downloaded.
+Releases support only the operating systems and CPU architectures listed in the user guide. Public distribution signing/notarization is not configured. There is no automated Cloudflare challenge handling. Source HTML/API changes may require parser updates. The default colors reflect LNMTL's published light reading theme rather than individual browser theme customizations. PDFs have a linked contents page; the EPUB has volume-grouped navigation. Posters, authors, and synopses are collected when adding or refreshing novels, then embedded in exported books for offline reading.
 
 ## License
 

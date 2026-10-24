@@ -1,4 +1,5 @@
 """Read public LNMTL pages without executing their scripts."""
+import base64
 import json
 import re
 import threading
@@ -36,6 +37,31 @@ def embedded_json(html, name):
     return json.JSONDecoder().raw_decode(html[match.end():])[0]
 
 
+def novel_details(soup, url):
+    description = soup.select_one(".description")
+    synopsis = []
+    source = description.select_one(".source") if description else None
+    synopsis_source = source.get_text(" ", strip=True) if source else ""
+    if description:
+        for unwanted in description.select("script, style, iframe, .source"):
+            unwanted.decompose()
+        paragraphs = description.find_all("p")
+        synopsis = [p.get_text(" ", strip=True) for p in paragraphs] if paragraphs else [description.get_text("\n", strip=True)]
+    image = soup.select_one(".media-left img[src], .media img.media-object[src]")
+    return {"synopsis": [p for p in synopsis if p], "synopsis_source": synopsis_source,
+            "poster_url": urljoin(url, image["src"]) if image else ""}
+
+
+def poster_type(data):
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    raise ValueError("Poster is not a supported JPEG, PNG, or GIF image")
+
+
 class Client:
     def __init__(self, delay=2.0, stop=None):
         self.session = requests.Session()
@@ -60,7 +86,7 @@ class Client:
             try:
                 self.last_request = time.monotonic()
                 response = self.session.get(url, timeout=(15, 60), **kwargs)
-                if response.status_code in (401, 403) or "<title>Just a moment" in response.text:
+                if response.status_code in (401, 403) or (not kwargs.get("stream") and "<title>Just a moment" in response.text):
                     raise AccessBlocked("LNMTL blocked this request. Downloads were stopped; try again later. No protection is bypassed.")
                 if response.status_code == 429 or response.status_code >= 500:
                     if self.stop.wait(min(60, 5 * 2 ** attempt)):
@@ -112,6 +138,25 @@ class Client:
             author = next((d.find_next_sibling("dd") for d in soup.select("dt") if "Authors" in d.get_text()), None)
         novel = {"url": url, "slug": url.rsplit("/", 1)[-1], "title": heading.get_text(" ", strip=True),
                  "author": author.get_text(" ", strip=True) if author else "Unknown", "volumes": volumes, "chapters": []}
+        novel.update(novel_details(soup, url))
+        if novel["poster_url"]:
+            try:
+                response = self.get(novel["poster_url"], stream=True)
+                try:
+                    data = bytearray()
+                    for chunk in response.iter_content(65536):
+                        self.check()
+                        data.extend(chunk)
+                        if len(data) > 10 * 1024 * 1024:
+                            raise ValueError("Poster exceeds 10 MB")
+                    mime = poster_type(data)
+                    novel["poster"] = {"mime": mime, "data": base64.b64encode(data).decode("ascii")}
+                finally:
+                    response.close()
+            except (Stopped, AccessBlocked):
+                raise
+            except (requests.RequestException, ValueError) as exc:
+                report(f"Poster unavailable; continuing without a new poster: {exc}")
         seen = set()
         for vi, volume in enumerate(volumes):
             page, last, count, expected = 1, 1, 0, None

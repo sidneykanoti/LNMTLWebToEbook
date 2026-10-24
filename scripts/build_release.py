@@ -8,7 +8,6 @@ import importlib.metadata
 import json
 import os
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -57,10 +56,7 @@ def zip_folder(folder, output):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-browser-install", action="store_true", help="Use an already-installed package-local Chromium shell")
-    parser.add_argument("--artifact-suffix", default="", help="Optional filename suffix for an updated build of the same version")
     args = parser.parse_args()
-    if args.artifact_suffix and not re.fullmatch(r"[a-z0-9-]+", args.artifact_suffix):
-        parser.error("Artifact suffix must contain only lowercase letters, numbers, and hyphens.")
     if sys.platform not in ("win32", "darwin", "linux"):
         parser.error("This platform is not supported.")
     os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
@@ -88,7 +84,8 @@ def main():
             cmd += ["--add-data", f"{ROOT / legal_file}:."]
     if sys.platform == "win32":
         version_file = work / "windows-version.txt"
-        version_file.write_text("VSVersionInfo(ffi=FixedFileInfo(filevers=(1,0,0,0),prodvers=(1,0,0,0),mask=0x3f,flags=0,OS=0x40004,fileType=0x1,subtype=0,date=(0,0)),kids=[StringFileInfo([StringTable('040904B0',[StringStruct('FileDescription','LNMTL Web to Ebook'),StringStruct('ProductName','LNMTL Web to Ebook'),StringStruct('FileVersion','1.0.0'),StringStruct('ProductVersion','1.0.0'),StringStruct('OriginalFilename','LNMTLWebToEbook.exe')])]),VarFileInfo([VarStruct('Translation',[1033,1200])])])", encoding="utf-8")
+        version_tuple = tuple(int(part) for part in VERSION.split(".")) + (0,)
+        version_file.write_text(f"VSVersionInfo(ffi=FixedFileInfo(filevers={version_tuple},prodvers={version_tuple},mask=0x3f,flags=0,OS=0x40004,fileType=0x1,subtype=0,date=(0,0)),kids=[StringFileInfo([StringTable('040904B0',[StringStruct('FileDescription','LNMTL Web to Ebook'),StringStruct('ProductName','LNMTL Web to Ebook'),StringStruct('FileVersion','{VERSION}'),StringStruct('ProductVersion','{VERSION}'),StringStruct('OriginalFilename','LNMTLWebToEbook.exe')])]),VarFileInfo([VarStruct('Translation',[1033,1200])])])", encoding="utf-8")
         cmd += ["--icon", ROOT / "assets" / "app.ico", "--version-file", version_file]
     if sys.platform == "darwin":
         cmd += ["--onedir", "--osx-bundle-identifier", "com.lnmtlwebtoebook.desktop", "--icon", ROOT / "assets" / "app.icns"]
@@ -108,8 +105,6 @@ def main():
     machine = platform.machine().lower()
     architecture = {"amd64": "x64", "x86_64": "x64", "aarch64": "arm64"}.get(machine, machine)
     tag = f"{NAME}-{VERSION}-{system}-{architecture}"
-    if args.artifact_suffix:
-        tag += "-" + args.artifact_suffix
     if sys.platform == "win32":
         executable = ROOT / "dist" / f"{NAME}.exe"
     elif sys.platform == "darwin":

@@ -1,4 +1,5 @@
 """Generate self-contained HTML, EPUB 3, and PDF from the local archive."""
+import base64
 import json
 import uuid
 import zipfile
@@ -16,7 +17,10 @@ p { margin: 0 0 1em; orphans: 3; widows: 3; }
 em { font-style: italic; font-weight: normal; } strong { font-weight: 600; } b { font-weight: 800; }
 .chapter { break-before: page; } .volume { break-before: page; padding-top: 3em; }
 .muted, .source { color: #626868; font-size: .8em; }
-.cover { padding: 5em 0; break-after: page; }
+.cover { padding: 1em 0; break-after: page; text-align: center; }
+.poster { display: block; margin: 0 auto 1.5em; max-width: 100%; width: auto;
+  height: auto; max-height: 100mm; object-fit: contain; }
+.synopsis, .export-details { break-after: page; }
 a { color: #0a3568; text-decoration: none; } li { margin: .35em 0; }
 @page { size: A5; margin: 18mm 16mm 20mm; }
 @media print { body { padding: 0; max-width: none; font-size: 11pt; }
@@ -35,10 +39,23 @@ def document(title, body, css="book.css", epub=False):
     return f'<?xml version="1.0" encoding="utf-8"?>\n<html xmlns="http://www.w3.org/1999/xhtml"{namespace} lang="en"><head><meta charset="utf-8" /><title>{escape(title)}</title><link rel="stylesheet" href="{css}" /></head><body>{body}</body></html>'
 
 
-def cover(book):
+def cover(book, poster_src=None):
     s = book["summary"]
     partial = " This export is partial; download the remaining indexed chapters and export again." if s["saved"] < s["total"] else ""
-    return f'<section class="cover"><p class="muted">LNMTL WEB TO EBOOK</p><h1>{escape(book["title"])}</h1><p>{escape(book["author"])}</p><p>{s["saved"]:,} saved chapters of {s["total"]:,} indexed.{partial}</p><p class="muted">Contains chapters available on LNMTL. Earlier or missing chapters are not reconstructed. Original machine translation, colors, and emphasis are preserved.</p><p class="source">Source: <a href="{escape(book["url"], quote=True)}">{escape(book["url"])}</a></p></section>'
+    poster = book.get("poster")
+    image = ""
+    if poster:
+        src = poster_src or f"data:{poster['mime']};base64,{poster['data']}"
+        image = f'<img class="poster" src="{escape(src, quote=True)}" alt="{escape(book["title"], quote=True)} cover" />'
+    synopsis = ""
+    if book.get("synopsis"):
+        paragraphs = "".join('<p>' + escape(p) + '</p>' for p in book["synopsis"])
+        attribution = '<p class="source">' + escape(book["synopsis_source"]) + '</p>' if book.get("synopsis_source") else ""
+        synopsis = f'<section class="synopsis" id="synopsis"><h2>Synopsis</h2>{paragraphs}{attribution}</section>'
+    return (f'<section class="cover">{image}<h1>{escape(book["title"])}</h1><p>{escape(book["author"])}</p></section>'
+            + synopsis
+            + f'<section class="export-details"><p class="muted">LNMTL WEB TO EBOOK</p><p>{s["saved"]:,} saved chapters of {s["total"]:,} indexed.{partial}</p><p class="muted">Contains chapters available on LNMTL. Earlier or missing chapters are not reconstructed. Original machine translation, colors, and emphasis are preserved.</p><p class="source">Source: <a href="{escape(book["url"], quote=True)}">{escape(book["url"])}</a></p></section>')
+
 
 
 def chapter_body(row):
@@ -53,6 +70,8 @@ def volume_label(c):
 def export_html(book, path):
     path = Path(path)
     body, toc, last_volume = [cover(book)], [], None
+    if book.get("synopsis"):
+        toc.append('<li><a href="#synopsis">Synopsis</a></li>')
     for i, row in enumerate(book["chapters"]):
         c = row["chapter"]
         if c["volume"] != last_volume:
@@ -75,8 +94,14 @@ def export_epub(book, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(".epub.tmp")
     uid = str(uuid.uuid5(uuid.NAMESPACE_URL, book["url"]))
-    files = {"cover.xhtml": document(book["title"], cover(book)), "book.css": CSS}
+    poster = book.get("poster")
+    poster_name = "poster." + {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif"}[poster["mime"]] if poster else None
+    files = {"cover.xhtml": document(book["title"], cover(book, poster_name)), "book.css": CSS}
+    if poster:
+        files[poster_name] = base64.b64decode(poster["data"], validate=True)
     manifest = ['<item id="css" href="book.css" media-type="text/css"/>', '<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>', '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>', '<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>']
+    if poster:
+        manifest.append(f'<item id="poster" href="{poster_name}" media-type="{poster["mime"]}" properties="cover-image"/>')
     spine = ['<itemref idref="cover"/>']
     groups, last = [], None
     ncx = []
@@ -93,11 +118,12 @@ def export_epub(book, path):
         manifest.append(f'<item id="c{i}" href="{name}" media-type="application/xhtml+xml"/>')
         spine.append(f'<itemref idref="c{i}"/>')
         ncx.append(f'<navPoint id="c{i}" playOrder="{i}"><navLabel><text>{escape(chapter_label(c))}</text></navLabel><content src="{name}"/></navPoint>')
-    nav = '<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>' + "".join('<li><span>' + escape(label) + '</span><ol>' + "".join(items) + '</ol></li>' for label, items in groups) + '</ol></nav>'
+    front_nav = '<li><a href="cover.xhtml#synopsis">Synopsis</a></li>' if book.get("synopsis") else ""
+    nav = '<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>' + front_nav + "".join('<li><span>' + escape(label) + '</span><ol>' + "".join(items) + '</ol></li>' for label, items in groups) + '</ol></nav>'
     files["nav.xhtml"] = document("Contents", nav, epub=True)
     files["toc.ncx"] = f'<?xml version="1.0" encoding="utf-8"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1"><head><meta name="dtb:uid" content="{uid}"/></head><docTitle><text>{escape(book["title"])}</text></docTitle><navMap>{"".join(ncx)}</navMap></ncx>'
     modified = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    files["content.opf"] = f'<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="book-id">{uid}</dc:identifier><dc:title>{escape(book["title"])}</dc:title><dc:creator>{escape(book["author"])}</dc:creator><dc:language>en</dc:language><dc:source>{escape(book["url"])}</dc:source><meta property="dcterms:modified">{modified}</meta></metadata><manifest>{"".join(manifest)}</manifest><spine toc="ncx">{"".join(spine)}</spine></package>'
+    files["content.opf"] = f'<?xml version="1.0" encoding="utf-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="book-id">{uid}</dc:identifier><dc:title>{escape(book["title"])}</dc:title><dc:creator>{escape(book["author"])}</dc:creator><dc:language>en</dc:language><dc:description>{escape(chr(10).join(book.get("synopsis", [])))}</dc:description><dc:source>{escape(book["url"])}</dc:source><meta property="dcterms:modified">{modified}</meta></metadata><manifest>{"".join(manifest)}</manifest><spine toc="ncx">{"".join(spine)}</spine></package>'
     with zipfile.ZipFile(temp, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("mimetype", "application/epub+zip", compress_type=zipfile.ZIP_STORED)
         z.writestr("META-INF/container.xml", '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>')

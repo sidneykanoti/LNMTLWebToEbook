@@ -91,7 +91,7 @@ def plan_cleanup(include_books=False, include_preferences=False, root=None):
             for suffix in ("epub", "pdf", "html"):
                 add(folder / f"{slug}.{suffix}", output)
             add(report_file, output)
-    for name in ("archive.sqlite3", "archive.sqlite3-wal", "archive.sqlite3-shm", "archive.sqlite3-journal"):
+    for name in ("archive.sqlite3", "archive.sqlite3-wal", "archive.sqlite3-shm", "archive.sqlite3-journal", "download-queue.lock"):
         add(library / name, library)
     if include_preferences:
         data = user_data_directory()

@@ -52,3 +52,21 @@ Removal is permanent and requires confirmation. Close other copies of the app be
 If a website request is blocked, the app stops rather than bypassing its protection. Try again later. Website layout changes can require an app update. For an issue report, include your operating system, the app version, the novel URL, and the visible error message. Do not share account credentials or private library databases.
 
 All features are available without paying. **Donate** opens the project's PayPal page in your browser. The app does not handle payment details or track donations.
+
+
+### Posters, authors, and synopses
+
+Newly added or refreshed novels include the title, author, poster, and synopsis supplied by LNMTL. Exported books open with a poster/title/author page, followed by the synopsis when available, export details, and chapters. EPUB files also mark the poster as their cover for compatible reading apps. HTML and PDF include the image directly; exports need no internet connection.
+
+For an existing novel, use **Add / refresh novel** with its link once to collect these details, then export it again. Saved chapters are kept. If a poster cannot be downloaded, the log reports it and the book can still be exported; a previously saved poster is kept. Novels without posters or synopses remain exportable.
+
+
+### Whole-catalogue downloads
+
+Use **Download entire catalogue** to fetch the current catalogue and queue full downloads, regardless of the Sample first setting. To queue a subset, select novels, turn off Sample first, then use Download / resume selected. The queue is stored with the current library.
+
+The app processes one novel at a time and saves each successful chapter immediately. Failed index, chapter, or export jobs receive up to three attempts per run, with increasing delays; other novels continue while retries wait. Export retries reuse downloaded chapters. Use **Queue details** to inspect saved errors and **Resume queue** to retry failed or unfinished jobs. Access blocks stop the queue safely.
+
+Enable **Export each completed novel** and select the desired formats before queueing to export each fully downloaded novel. Format choices are saved per job. Enable **Resume queue when app opens** to continue unfinished work automatically on the next launch; it is initially off. Keep the computer awake during downloads. Pausing or closing keeps the queue and downloaded chapters.
+
+The queue progress bar measures completed novels. The chapter summary covers novels indexed so far, so its total grows during discovery. Completed jobs are skipped when resuming. Starting Download entire catalogue again queues all current catalogue novels again, reuses saved chapters, and applies the current export choices. Refresh a novel's index to discover chapters added since it was last indexed.

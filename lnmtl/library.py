@@ -23,7 +23,13 @@ class Library:
                 ordinal INTEGER NOT NULL, metadata TEXT NOT NULL, html TEXT, raw_path TEXT,
                 sha256 TEXT, downloaded_at TEXT, error TEXT);
             CREATE INDEX IF NOT EXISTS chapter_novel ON chapters(slug, ordinal);
+            CREATE INDEX IF NOT EXISTS chapter_download_progress ON chapters(slug, (html IS NOT NULL));
             CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS download_queue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT, url TEXT UNIQUE NOT NULL,
+                title TEXT NOT NULL, slug TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'pending',
+                attempts INTEGER NOT NULL DEFAULT 0, retry_at REAL NOT NULL DEFAULT 0,
+                formats TEXT NOT NULL DEFAULT '[]', error TEXT);
         """)
 
     def close(self):
@@ -40,6 +46,11 @@ class Library:
         # Commit only complete, validated discovery results. Existing chapter bodies survive refreshes.
         with self.db:
             metadata = {k: v for k, v in novel.items() if k != "chapters"}
+            previous = self.db.execute("SELECT metadata FROM novels WHERE slug=?", (novel["slug"],)).fetchone()
+            if previous and "poster" not in metadata:
+                old = json.loads(previous[0])
+                if old.get("poster"):
+                    metadata["poster"] = old["poster"]
             metadata["indexed_at"] = datetime.now(timezone.utc).isoformat()
             self.db.execute("INSERT OR REPLACE INTO novels VALUES (?,?)", (novel["slug"], json.dumps(metadata, ensure_ascii=False)))
             for c in novel["chapters"]:
@@ -65,19 +76,21 @@ class Library:
         return sorted(rows, key=lambda r: (float(r["chapter"]["volume"]), float(r["chapter"].get("position") or r["ordinal"]), r["ordinal"]))
 
     def summary(self, slug):
-        r = self.db.execute("SELECT COUNT(*), COUNT(html), SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) FROM chapters WHERE slug=?", (slug,)).fetchone()
+        r = self.db.execute("SELECT COUNT(*), COALESCE(SUM(html IS NOT NULL),0), SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) FROM chapters WHERE slug=?", (slug,)).fetchone()
         return {"total": r[0], "saved": r[1], "failed": r[2] or 0}
 
     def download(self, slug, client=None, report=lambda _: None, limit=None):
         client = client or Client()
-        pending = [r for r in self.chapters(slug) if not r["html"]]
+        # Do not load every saved chapter body into memory just to resume a novel.
+        pending = [dict(r) for r in self.db.execute(
+            "SELECT url, metadata FROM chapters WHERE slug=? AND html IS NULL ORDER BY ordinal", (slug,))]
         if limit is not None:
             pending = pending[:limit]
         raw_dir = self.root / "raw" / slug
         raw_dir.mkdir(parents=True, exist_ok=True)
         for i, row in enumerate(pending, 1):
             client.check()
-            c = row["chapter"]
+            c = json.loads(row["metadata"])
             report(f"Downloading {i}/{len(pending)}: #{c['number']} {c['title']}")
             try:
                 raw = client.get(row["url"]).text

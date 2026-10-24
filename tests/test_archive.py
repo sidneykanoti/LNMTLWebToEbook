@@ -1,3 +1,4 @@
+import base64
 import json
 import tempfile
 import threading
@@ -8,7 +9,8 @@ from xml.etree import ElementTree
 
 from lnmtl.export import export_epub, export_html
 from lnmtl.library import Library
-from lnmtl.source import Client, Stopped, clean_chapter, embedded_json, novel_url
+from lnmtl.source import Client, Stopped, clean_chapter, embedded_json, novel_url, novel_details, poster_type
+from bs4 import BeautifulSoup
 
 HTML = '''<div class="chapter-body"><sentence class="translated">The <t>Blue Moon</t> met a <w class="postfixed">green dragon</w>. <dq>Italic words</dq> <sq>Bold words</sq> <da>Heavy words</da><br/>A &amp; B.</sentence><sentence class="original">DO NOT EXPORT CHINESE</sentence></div>'''
 
@@ -92,6 +94,68 @@ class ArchiveTests(unittest.TestCase):
                 self.assertIn(b"Volume 6", z.read("OEBPS/nav.xhtml"))
             export_html(book, Path(tmp) / "test.html")
             lib.close()
+
+    def test_novel_details_and_local_poster(self):
+        image = (Path(__file__).resolve().parents[1] / "assets" / "app-64.png").read_bytes()
+        html = '<div class="media"><div class="media-left"><img src="/poster.png" /></div><h2>Test</h2><div class="description"><p>First &amp; second.</p><p>Next paragraph.</p><script>unsafe()</script><div class="source">Description from Example</div></div></div><script>lnmtl.volumes=[];</script>'
+        class FakeClient(Client):
+            def get(self, url, **kwargs):
+                class Response:
+                    text = html
+                    def iter_content(inner, size):
+                        yield image
+                    def close(inner):
+                        pass
+                return Response()
+        novel = FakeClient().discover("test")
+        self.assertEqual(novel["synopsis"], ["First & second.", "Next paragraph."])
+        self.assertEqual(novel["synopsis_source"], "Description from Example")
+        self.assertEqual(novel["poster_url"], "https://lnmtl.com/poster.png")
+        self.assertEqual(base64.b64decode(novel["poster"]["data"]), image)
+        with tempfile.TemporaryDirectory() as tmp:
+            with_lib = Library(Path(tmp) / "library")
+            try:
+                novel["chapters"] = [chapter()]
+                with_lib.save_index(novel)
+                with with_lib.db:
+                    with_lib.db.execute("UPDATE chapters SET html=?", (clean_chapter(HTML),))
+                book = with_lib.book("test")
+                html_path = export_html(book, Path(tmp) / "book.html")
+                markup = html_path.read_text(encoding="utf-8")
+                self.assertIn("data:image/png;base64,", markup)
+                self.assertIn("First &amp; second.", markup)
+                self.assertLess(markup.index('class="poster"'), markup.index('id="synopsis"'))
+                self.assertLess(markup.index('id="synopsis"'), markup.index('<nav>'))
+                with zipfile.ZipFile(export_epub(book, Path(tmp) / "book.epub")) as z:
+                    self.assertEqual(z.read("OEBPS/poster.png"), image)
+                    self.assertIn(b'properties="cover-image"', z.read("OEBPS/content.opf"))
+                    self.assertIn(b'src="poster.png"', z.read("OEBPS/cover.xhtml"))
+                    self.assertNotIn(b'data:image', z.read("OEBPS/cover.xhtml"))
+                    for name in z.namelist():
+                        if name.endswith((".xhtml", ".opf")):
+                            ElementTree.fromstring(z.read(name))
+                # A refresh with an unavailable poster keeps the saved offline image.
+                novel.pop("poster")
+                with_lib.save_index(novel)
+                self.assertEqual(with_lib.novel("test")["poster"], book["poster"])
+            finally:
+                with_lib.close()
+
+    def test_missing_and_invalid_posters(self):
+        self.assertEqual(novel_details(BeautifulSoup('<h2>Title</h2>', "html.parser"), "https://lnmtl.com/novel/test")["synopsis"], [])
+        with self.assertRaises(ValueError):
+            poster_type(b"<html>blocked</html>")
+        class MissingPosterClient(Client):
+            def get(self, url, **kwargs):
+                if kwargs.get("stream"):
+                    raise ValueError("Unavailable")
+                class Response:
+                    text = '<div class="media-left"><img src="/missing.jpg" /></div><h2>Test</h2><script>lnmtl.volumes=[];</script>'
+                return Response()
+        messages = []
+        novel = MissingPosterClient().discover("test", messages.append)
+        self.assertNotIn("poster", novel)
+        self.assertTrue(any("Poster unavailable" in message for message in messages))
 
     def test_pause(self):
         stop = threading.Event()
