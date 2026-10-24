@@ -32,9 +32,22 @@ def run(directory):
         app.window.geometry("1040x700")
         app.window.update()
         assert app.index_button.winfo_ismapped() and app.catalogue_button.winfo_ismapped()
+        assert list(app.nav_buttons) == ["Library", "Downloads", "Help", "Donate", "Settings"]
+        app.nav_buttons["Help"].invoke()
+        app.window.update()
+        assert app.active_page == "Help" and app.pages["Help"].winfo_ismapped()
+        from unittest.mock import patch
+        from .platform_support import SUPPORT_URL
+        with patch("lnmtl.gui.webbrowser.open_new_tab", return_value=True) as browser:
+            app.nav_buttons["Donate"].invoke()
+            browser.assert_called_once_with(SUPPORT_URL)
+        assert app.active_page == "Help"
         app.show_page("Settings")
         app.window.update()
         assert app.support_button.winfo_ismapped() and app.clear_button.winfo_ismapped()
+        with patch("lnmtl.gui.webbrowser.open_new_tab", return_value=True) as browser:
+            app.support_button.invoke()
+            browser.assert_called_once_with(SUPPORT_URL)
         assert app.clear_button.winfo_rooty() + app.clear_button.winfo_height() < app.window.winfo_rooty() + app.window.winfo_height()
         app.show_page("Downloads")
         app.window.update()

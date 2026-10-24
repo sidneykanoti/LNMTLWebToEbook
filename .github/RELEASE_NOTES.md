@@ -1,25 +1,22 @@
-LNMTL Web to Ebook 1.2.1 saves the chapters available on LNMTL and exports readable EPUB, PDF, and HTML books with colors, italics, and bold text preserved.
+LNMTL Web to Ebook 1.2.2 saves the chapters available on LNMTL and exports readable EPUB, PDF, and HTML books with colors, italics, and bold text preserved.
 
 
-This release redesigns the desktop interface while preserving existing libraries, saved chapters, and queues:
+This update adds two sidebar items immediately after Downloads:
 
-- **Library:** poster thumbnails, titles and authors, search, a selected-book synopsis panel, and focused Download/Export actions.
-- **Downloads:** one chapter-progress bar with saved count and percentage, a clear Pause action, queue status, and inline saved errors.
-- **Settings:** export formats, sample mode, automatic export/resume, storage, support, and cleanup grouped away from daily actions.
-- The detailed activity log is collapsed by default. Preferences are saved in the active library, and downloads can continue while switching views.
-- The current-novel percentage includes chapters saved before resuming. Poster previews support JPEG and PNG without an internet connection.
+- **Help:** a scrollable in-app guide to adding novels, downloading chapters, pausing and resuming queues, exporting books, storage, and troubleshooting.
+- **Donate:** opens the existing project PayPal page in your default browser.
 
-Whole-catalogue downloads, bounded retries, automatic exports, and book covers/synopses from version 1.1.0 remain available. **Download entire catalogue** is in Downloads; **Refresh details** is in Library; sample mode and export formats are in Settings. The default sample mode still saves three new chapters per selected novel.
+The **Support the project** button in Settings is unchanged. Existing libraries, saved chapters, preferences, and queues continue to work.
 
 Choose the download for your computer:
 
 | Computer | Download |
 | --- | --- |
-| Windows 10/11, Intel/AMD 64-bit | `LNMTLWebToEbook-1.2.1-windows-x64.exe` |
-| Mac with Apple Silicon | `LNMTLWebToEbook-1.2.1-macos-arm64.dmg` |
-| Mac with Intel processor | `LNMTLWebToEbook-1.2.1-macos-x64.dmg` |
-| Ubuntu 24.04+ 64-bit | `LNMTLWebToEbook-1.2.1-linux-x64.deb` |
-| Compatible Linux 64-bit, portable archive | `LNMTLWebToEbook-1.2.1-linux-x64.tar.gz` |
+| Windows 10/11, Intel/AMD 64-bit | `LNMTLWebToEbook-1.2.2-windows-x64.exe` |
+| Mac with Apple Silicon | `LNMTLWebToEbook-1.2.2-macos-arm64.dmg` |
+| Mac with Intel processor | `LNMTLWebToEbook-1.2.2-macos-x64.dmg` |
+| Ubuntu 24.04+ 64-bit | `LNMTLWebToEbook-1.2.2-linux-x64.deb` |
+| Compatible Linux 64-bit, portable archive | `LNMTLWebToEbook-1.2.2-linux-x64.tar.gz` |
 
 Python and the PDF engine are included. The portable Linux archive still needs compatible system libraries; the Ubuntu package declares its dependencies. These targets do not include Windows/Linux ARM or every Linux distribution.
 

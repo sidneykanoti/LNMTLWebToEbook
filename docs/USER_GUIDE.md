@@ -51,6 +51,8 @@ Removal is permanent and requires confirmation. Close other copies of the app be
 
 ## Help and optional support
 
+**Help** in the sidebar opens a scrollable usage guide inside the app. **Donate**, immediately below Help, opens the project's PayPal page in your browser.
+
 If a website request is blocked, the app stops rather than bypassing its protection. Try again later. Website layout changes can require an app update. For an issue report, include your operating system, the app version, the novel URL, and the visible error message. Do not share account credentials or private library databases.
 
 All features are available without paying. **Settings → Support the project** opens the project's PayPal page in your browser. The app does not handle payment details or track donations.

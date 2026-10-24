@@ -100,11 +100,11 @@ class DesktopUI:
         tk.Label(sidebar, text="LNMTL", bg="#163d33", fg=WHITE, font=(self.font, 20, "bold")).pack(anchor="w", padx=22)
         tk.Label(sidebar, text="WEB TO EBOOK", bg="#163d33", fg="#a3c1af", font=(self.font, 8, "bold")).pack(anchor="w", padx=23, pady=(3, 35))
         self.nav_buttons = {}
-        for name in ("Library", "Downloads", "Settings"):
+        for name in ("Library", "Downloads", "Help", "Donate", "Settings"):
             button = tk.Button(sidebar, text=name, anchor="w", bg="#163d33", fg="#c8d9cd",
                                activebackground="#2b5747", activeforeground=WHITE, relief="flat", borderwidth=0,
                                font=(self.font, 11), padx=18, pady=13, cursor="hand2", takefocus=True,
-                               command=lambda page=name: self.show_page(page))
+                               command=self.open_support if name == "Donate" else lambda page=name: self.show_page(page))
             button.pack(fill="x", padx=12, pady=3)
             self.nav_buttons[name] = button
         tk.Label(sidebar, text=f"Version {VERSION}\nSaved on your computer", justify="left", bg="#163d33",
@@ -115,13 +115,14 @@ class DesktopUI:
         container.columnconfigure(0, weight=1)
         container.rowconfigure(0, weight=1)
         self.pages = {}
-        for name in ("Library", "Downloads", "Settings"):
+        for name in ("Library", "Downloads", "Help", "Settings"):
             page = ttk.Frame(container)
             page.grid(row=0, column=0, sticky="nsew")
             page.columnconfigure(0, weight=1)
             self.pages[name] = page
         self._build_library(self.pages["Library"])
         self._build_downloads(self.pages["Downloads"])
+        self._build_help(self.pages["Help"])
         self._build_settings(self.pages["Settings"])
         footer = ttk.Frame(container)
         footer.grid(row=1, column=0, sticky="ew", pady=(12, 0))
@@ -320,6 +321,35 @@ class DesktopUI:
         ttk.Label(cleanup, text="Clear downloads or reset your library.\nYou choose whether exported books are removed.", style="CardMuted.TLabel", wraplength=290).pack(anchor="w")
         self.clear_button = ttk.Button(cleanup, text="Clear app data…", style="Danger.TButton", command=self.clear_data)
         self.clear_button.pack(anchor="w", pady=(14, 0))
+
+    def _build_help(self, page):
+        self._heading(page, "Help", "Everything you need to save novels and read offline.")
+        page.rowconfigure(1, weight=1)
+        card = self._card(page, row=1, column=0, sticky="nsew")
+        card.columnconfigure(0, weight=1)
+        card.rowconfigure(0, weight=1)
+        guide = tk.Text(card, wrap="word", width=50, height=10, bg=WHITE, fg=INK,
+                        relief="flat", borderwidth=0, highlightthickness=0,
+                        font=(self.font, 11), padx=4, pady=4, spacing3=12)
+        guide.grid(row=0, column=0, sticky="nsew")
+        scrollbar = ttk.Scrollbar(card, command=guide.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        guide.configure(yscrollcommand=scrollbar.set)
+        guide.tag_configure("heading", font=(self.font, 13, "bold"), spacing1=12, spacing3=8)
+        sections = (
+            ("Add a novel", "In Library, choose Add novel and enter an LNMTL novel link or short name, such as against-the-gods. Load catalogue lists available novels without downloading chapters. Search by title or author; select a novel to see its details."),
+            ("Download chapters", "Sample mode is on by default and downloads three new chapters per novel. For a full novel, turn off Sample mode in Settings, select the novel in Library, then choose Download. Use Ctrl or Shift to select multiple novels. Refresh details updates a novel's chapter index and metadata while keeping saved chapters."),
+            ("Pause and resume", "Downloads shows progress for the current novel and the saved queue. Pause keeps downloaded chapters. Resume queue continues unfinished work and retries failed jobs. Select a queue row to read its saved error, or choose Show activity for details. You can browse other pages while a job runs. Keep your computer awake during downloads."),
+            ("Export and find your books", "Choose EPUB, PDF, or HTML in Settings. Select downloaded novels in Library and choose Export. Open books folder in Settings opens your exported files. Exports made before all indexed chapters are saved are marked partial. Enable Export each completed novel before queueing to export automatically; export choices are saved with each job."),
+            ("Download the whole catalogue", "In Downloads, choose Download entire catalogue to queue full novels, regardless of Sample mode. Novels download one at a time and saved chapters are reused. Enable Resume queue when the app opens in Settings to continue unfinished work on the next launch."),
+            ("Storage and saved data", "Your library and books are stored on your computer. Settings shows the current library folder and lets you choose another. Clear app data lets you choose what to remove; read its confirmation carefully because removal is permanent. Closing the app keeps saved chapters and queued work."),
+            ("Troubleshooting", "If a website request is blocked, try again later. Website changes may require an app update. The app saves chapters available on LNMTL and cannot reconstruct missing chapters. When reporting a problem, include your operating system, app version, novel link, and visible error message."),
+            ("Support the project", "Donate opens the project's PayPal page in your browser. Contributions are optional and all features are free to use."),
+        )
+        for title, body in sections:
+            guide.insert("end", title + "\n", "heading")
+            guide.insert("end", body + "\n\n")
+        guide.configure(state="disabled")
 
     def show_page(self, name):
         self.active_page = name
