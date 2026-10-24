@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter.font import nametofont
 
-from PIL import Image, ImageDraw, ImageTk
+from PIL import Image, ImageDraw
 
 from .library import Library
 from .platform_support import APP_NAME, VERSION, asset_path, library_directory
@@ -358,7 +358,11 @@ class DesktopUI:
             for fraction in (.30, .42, .54):
                 y = int(size[1] * fraction)
                 draw.line((size[0] * .27, y, size[0] * .78, y), fill="#8cae9a", width=max(1, size[0] // 30))
-        photo = ImageTk.PhotoImage(image, master=self.window)
+        # Tk displays PNG natively. Avoid Pillow's optional Tk bridge, whose
+        # platform helper is not consistently present in frozen Linux builds.
+        png = io.BytesIO()
+        image.save(png, format="PNG")
+        photo = tk.PhotoImage(data=base64.b64encode(png.getvalue()).decode("ascii"), master=self.window)
         if len(self.poster_cache) >= 256:
             self.poster_cache.pop(next(iter(self.poster_cache)))
         self.poster_cache[key] = photo

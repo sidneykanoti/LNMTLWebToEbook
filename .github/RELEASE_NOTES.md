@@ -1,7 +1,7 @@
-LNMTL Web to Ebook 1.2.0 saves the chapters available on LNMTL and exports readable EPUB, PDF, and HTML books with colors, italics, and bold text preserved.
+LNMTL Web to Ebook 1.2.1 saves the chapters available on LNMTL and exports readable EPUB, PDF, and HTML books with colors, italics, and bold text preserved.
 
 
-This minor release redesigns the desktop interface while preserving existing libraries, saved chapters, and queues:
+This release redesigns the desktop interface while preserving existing libraries, saved chapters, and queues:
 
 - **Library:** poster thumbnails, titles and authors, search, a selected-book synopsis panel, and focused Download/Export actions.
 - **Downloads:** one chapter-progress bar with saved count and percentage, a clear Pause action, queue status, and inline saved errors.
@@ -15,11 +15,11 @@ Choose the download for your computer:
 
 | Computer | Download |
 | --- | --- |
-| Windows 10/11, Intel/AMD 64-bit | `LNMTLWebToEbook-1.2.0-windows-x64.exe` |
-| Mac with Apple Silicon | `LNMTLWebToEbook-1.2.0-macos-arm64.dmg` |
-| Mac with Intel processor | `LNMTLWebToEbook-1.2.0-macos-x64.dmg` |
-| Ubuntu 24.04+ 64-bit | `LNMTLWebToEbook-1.2.0-linux-x64.deb` |
-| Compatible Linux 64-bit, portable archive | `LNMTLWebToEbook-1.2.0-linux-x64.tar.gz` |
+| Windows 10/11, Intel/AMD 64-bit | `LNMTLWebToEbook-1.2.1-windows-x64.exe` |
+| Mac with Apple Silicon | `LNMTLWebToEbook-1.2.1-macos-arm64.dmg` |
+| Mac with Intel processor | `LNMTLWebToEbook-1.2.1-macos-x64.dmg` |
+| Ubuntu 24.04+ 64-bit | `LNMTLWebToEbook-1.2.1-linux-x64.deb` |
+| Compatible Linux 64-bit, portable archive | `LNMTLWebToEbook-1.2.1-linux-x64.tar.gz` |
 
 Python and the PDF engine are included. The portable Linux archive still needs compatible system libraries; the Ubuntu package declares its dependencies. These targets do not include Windows/Linux ARM or every Linux distribution.
 
