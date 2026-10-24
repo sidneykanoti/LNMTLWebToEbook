@@ -73,7 +73,7 @@ class DownloadQueue:
             self.db.execute("UPDATE download_queue SET " + ",".join(key + "=?" for key in values)
                             + " WHERE url=?", (*values.values(), url))
 
-    def run(self, client=None, report=lambda _: None, progress=lambda _: None, exporter=export_book):
+    def run(self, client=None, report=lambda _: None, progress=lambda _: None, exporter=export_book, current=lambda _: None):
         client = client or Client()
         with runner_lock(self.library.root):
             # In-progress rows belong to an interrupted process: preserve saved chapters
@@ -103,6 +103,7 @@ class DownloadQueue:
                     report(f"Queue: {row['title']} (attempt {attempt}/{self.MAX_ATTEMPTS})")
                     exists = self.db.execute("SELECT 1 FROM novels WHERE slug=?", (row["slug"],)).fetchone()
                     if not exists:
+                        current({"slug": row["slug"], "title": row["title"], "saved": 0, "total": 0, "phase": "indexing"})
                         self.library.save_index(client.discover(row["url"], report))
 
                     last_progress = [0.0]
@@ -114,15 +115,17 @@ class DownloadQueue:
                             progress(self.progress())
                             last_progress[0] = now
 
-                    summary = self.library.download(row["slug"], client, chapter_progress)
+                    summary = self.library.download(row["slug"], client, chapter_progress, progress=current)
                     if summary["saved"] < summary["total"]:
                         raise RuntimeError(f"{summary['total'] - summary['saved']} chapters still need downloading")
                     formats = json.loads(row["formats"])
                     if formats and summary["saved"]:
                         client.check()
                         report(f"Exporting {row['title']}…")
+                        current({"slug": row["slug"], "title": self.library.novel(row["slug"])["title"], **summary, "phase": "exporting"})
                         exporter(self.library, row["slug"], formats)
                     self._update(row["url"], state="completed", retry_at=0, error=None)
+                    current({"slug": row["slug"], "title": self.library.novel(row["slug"])["title"], **summary, "phase": "completed"})
                 except (Stopped, AccessBlocked) as exc:
                     self._update(row["url"], state="pending", attempts=attempt - 1, retry_at=0, error=str(exc))
                     progress(self.progress())

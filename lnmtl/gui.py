@@ -5,8 +5,7 @@ import threading
 import webbrowser
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from tkinter.font import nametofont
-
+from .ui import DesktopUI
 from .export import export_book
 from .library import Library
 from .download_queue import DownloadQueue
@@ -15,124 +14,33 @@ from .cleanup import clear_planned_data, plan_cleanup, remove_app_data_folder
 from .source import Client, Stopped
 
 
-class App:
+class App(DesktopUI):
+
     def __init__(self):
         self.window = tk.Tk()
         self.window.title(f"{APP_NAME} {VERSION}")
         self.app_icon = tk.PhotoImage(file=str(asset_path("app-256.png")))
         self.window.iconphoto(True, self.app_icon)
-        self.window.geometry("1060x850")
-        self.window.minsize(840, 760)
+        width = min(1280, max(1040, self.window.winfo_screenwidth() - 64))
+        height = min(840, max(700, self.window.winfo_screenheight() - 100))
+        self.window.geometry(f"{width}x{height}")
+        self.window.minsize(1040, 700)
         self.events = queue.Queue()
         self.stop = threading.Event()
         self.busy = False
         self.items = {}
         self.catalogue = []
+        self.current = {}
         self.search = tk.StringVar()
         self.url = tk.StringVar()
-        self.status = tk.StringVar(value="Add a novel link, or load LNMTL's catalogue to get started.")
+        self.status = tk.StringVar(value="Choose a novel from your library to begin.")
         self.formats = {"epub": tk.BooleanVar(value=True), "pdf": tk.BooleanVar(value=False), "html": tk.BooleanVar(value=False)}
         self.sample = tk.BooleanVar(value=True)
         self.auto_export = tk.BooleanVar(value=False)
         self.auto_resume = tk.BooleanVar(value=False)
-        self.queue_status = tk.StringVar(value="Queue is empty.")
-        ui_font = nametofont("TkDefaultFont").actual("family")
-        self.window.option_add("*Font", (ui_font, 10))
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("TFrame", background="#f4f3ee")
-        style.configure("TLabel", background="#f4f3ee", foreground="#203c39", font=(ui_font, 10))
-        style.configure("TButton", font=(ui_font, 10), padding=(12, 8))
-        style.configure("Treeview", rowheight=31, font=(ui_font, 10))
-        style.configure("Treeview.Heading", font=(ui_font, 10, "bold"))
-        frame = ttk.Frame(self.window, padding=16)
-        frame.pack(fill="both", expand=True)
-        header = ttk.Frame(frame)
-        header.pack(fill="x")
-        self.header_logo = tk.PhotoImage(file=str(asset_path("app-64.png")))
-        ttk.Label(header, image=self.header_logo).pack(side="left", padx=(0, 12))
-        titles = ttk.Frame(header)
-        titles.pack(side="left", fill="x", expand=True)
-        ttk.Label(titles, text=APP_NAME, font=("Georgia", 25)).pack(anchor="w")
-        self.subtitle = ttk.Label(titles, text="Backup and archive your novels, Almost similar style to website and  Read Offline", wraplength=780)
-        self.subtitle.pack(anchor="w", pady=(5, 0))
-        header.bind("<Configure>", lambda event: self.subtitle.configure(wraplength=max(250, event.width - 90)))
-        support = ttk.Frame(frame)
-        support.pack(fill="x", pady=(12, 8))
-        support.columnconfigure(0, weight=1)
-        self.support_text = ttk.Label(support, text="Free to use. Feel free to donate if you've found this software useful", wraplength=570)
-        self.support_text.grid(row=0, column=0, sticky="w", padx=(0, 12))
-        self.support_button = ttk.Button(support, text="Donate", command=self.open_support)
-        self.support_button.grid(row=0, column=1, sticky="e")
-        support.bind("<Configure>", lambda event: self.support_text.configure(wraplength=max(250, event.width - self.support_button.winfo_reqwidth() - 24)))
-        bar = ttk.Frame(frame)
-        bar.pack(fill="x")
-        bar.columnconfigure(0, weight=1)
-        self.url_label = ttk.Label(bar, text="Novel URL or short name, e.g. against-the-gods", font=(ui_font, 9))
-        self.url_label.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 6))
-        self.url_entry = ttk.Entry(bar, textvariable=self.url)
-        self.url_entry.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
-        self.index_button = ttk.Button(bar, text="Add / refresh novel", command=self.add_novel)
-        self.index_button.grid(row=1, column=1, sticky="ns")
-        self.catalogue_button = ttk.Button(bar, text="Load catalogue", command=self.load_catalogue)
-        self.catalogue_button.grid(row=1, column=2, sticky="ns", padx=(8, 0))
-        search_bar = ttk.Frame(frame)
-        search_bar.pack(fill="x", pady=(12, 8))
-        ttk.Label(search_bar, text="Find a novel  ").pack(side="left")
-        ttk.Entry(search_bar, textvariable=self.search).pack(side="left", fill="x", expand=True)
-        self.search.trace_add("write", lambda *_: self.refresh())
-        table_frame = ttk.Frame(frame)
-        table_frame.pack(fill="both", expand=True)
-        self.table = ttk.Treeview(table_frame, columns=("title", "saved", "state"), show="headings", selectmode="extended", height=3)
-        for col, title, width in (("title", "Novel", 550), ("saved", "Saved / indexed", 125), ("state", "Status", 160)):
-            self.table.heading(col, text=title)
-            self.table.column(col, width=width, minwidth=90)
-        self.table.pack(side="left", fill="both", expand=True)
-        scrollbar = ttk.Scrollbar(table_frame, command=self.table.yview)
-        scrollbar.pack(side="right", fill="y")
-        self.table.configure(yscrollcommand=scrollbar.set)
-        self.table.bind("<<TreeviewSelect>>", self.select_novel)
-        options = ttk.Frame(frame)
-        options.pack(fill="x", pady=6)
-        ttk.Checkbutton(options, text="Sample first: download 3 new chapters per selected novel", variable=self.sample).pack(side="left")
-        for fmt, label in (("epub", "EPUB"), ("pdf", "PDF"), ("html", "HTML")):
-            ttk.Checkbutton(options, text=label, variable=self.formats[fmt]).pack(side="right", padx=5)
-        actions = ttk.Frame(frame)
-        actions.pack(fill="x")
-        self.download_button = ttk.Button(actions, text="Download / resume selected", command=self.download)
-        self.download_button.pack(side="left")
-        self.export_button = ttk.Button(actions, text="Export selected", command=self.export)
-        self.export_button.pack(side="left", padx=8)
-        self.pause_button = ttk.Button(actions, text="Pause downloads", command=self.stop.set, state="disabled")
-        self.pause_button.pack(side="left")
-        bulk = ttk.Frame(frame)
-        bulk.pack(fill="x", pady=(8, 0))
-        self.archive_button = ttk.Button(bulk, text="Download entire catalogue", command=self.archive_all)
-        self.archive_button.pack(side="left")
-        self.resume_button = ttk.Button(bulk, text="Resume queue", command=self.resume_queue)
-        self.resume_button.pack(side="left", padx=8)
-        ttk.Button(bulk, text="Queue details", command=self.queue_details).pack(side="left")
-        preferences = ttk.Frame(frame)
-        preferences.pack(fill="x", pady=(6, 0))
-        ttk.Checkbutton(preferences, text="Export each completed novel", variable=self.auto_export).pack(side="left")
-        ttk.Checkbutton(preferences, text="Resume queue when app opens", variable=self.auto_resume, command=self.save_queue_preference).pack(side="left", padx=12)
-        ttk.Label(frame, textvariable=self.queue_status, wraplength=950).pack(anchor="w", pady=(8, 0))
-        self.queue_progress = ttk.Progressbar(frame, mode="determinate", maximum=1)
-        self.queue_progress.pack(fill="x", pady=(4, 0))
-        library_actions = ttk.Frame(frame)
-        library_actions.pack(fill="x", pady=(8, 0))
-        self.books_button = ttk.Button(library_actions, text="Open books folder", command=self.open_output)
-        self.books_button.pack(side="right")
-        self.location_button = ttk.Button(library_actions, text="Choose library folder", command=self.choose_library)
-        self.location_button.pack(side="right", padx=8)
-        self.clear_button = ttk.Button(library_actions, text="Clear app data…", command=self.clear_data)
-        self.clear_button.pack(side="right")
-        self.progress = ttk.Progressbar(frame, mode="indeterminate")
-        self.progress.pack(fill="x", pady=(8, 4))
-        ttk.Label(frame, textvariable=self.status, wraplength=950).pack(anchor="w")
-        self.log = tk.Text(frame, height=3, font=nametofont("TkFixedFont"), bg="#fffefa", relief="flat", state="disabled")
-        self.log.pack(fill="x", pady=(6, 0))
-        self.controls = [self.index_button, self.catalogue_button, self.download_button, self.export_button, self.location_button, self.clear_button, self.archive_button, self.resume_button]
+        self.queue_status = tk.StringVar(value="Queue is empty")
+        self._load_preferences()
+        self._build_ui()
         self.refresh()
         lib = Library()
         try:
@@ -142,8 +50,8 @@ class App:
         finally:
             lib.close()
         if self.auto_resume.get() and pending:
-            self.window.after(500, self.resume_queue)
-        self.window.after(150, self.poll)
+            self.resume_timer = self.window.after(500, self.resume_queue)
+        self.poll_timer = self.window.after(150, self.poll)
         self.window.protocol("WM_DELETE_WINDOW", self.close)
 
     def refresh(self):
@@ -161,18 +69,33 @@ class App:
             all_items.update(indexed)
             self.table.delete(*self.table.get_children())
             self.items = {}
+            self.row_images = []
             for i, n in enumerate(sorted(all_items.values(), key=lambda n: n["title"].lower())):
-                if self.search.get().lower() not in n["title"].lower():
+                if self.search.get().lower() not in (n["title"] + " " + n.get("author", "")).lower():
                     continue
                 iid = str(i)
                 s = lib.summary(n["slug"]) if n.get("slug") else None
                 state = ("Retry needed" if s["failed"] else "Downloaded" if s["saved"] == s["total"] and s["total"] else "Ready to download") if s else "Not indexed"
                 if n["url"] in queued:
                     state = {"pending": "Queued", "running": "In progress", "failed": "Queue needs attention", "completed": "Queue completed"}[queued[n["url"]]["state"]]
-                self.table.insert("", "end", iid=iid, values=(n["title"], f'{s["saved"]:,} / {s["total"]:,}' if s else "—", state))
-                self.items[iid] = n
+                state = {"Ready to download": "Ready", "Queue needs attention": "Needs attention", "Queue completed": "Completed"}.get(state, state)
+                item = dict(n)
+                if s:
+                    item["_summary"] = s
+                photo = self.poster_photo(item)
+                self.row_images.append(photo)
+                self.table.insert("", "end", iid=iid, text="  " + n["title"] + "\n  " + n.get("author", "Add novel to load author"), image=photo,
+                                  values=(f'{s["saved"]:,} / {s["total"]:,}' if s else "—", state))
+                self.items[iid] = item
                 if n["url"] in selected_urls:
                     self.table.selection_add(iid)
+            self.library_count.set(f"{len(self.items):,} novels")
+            if self.items:
+                self.empty_label.place_forget()
+            else:
+                self.empty_label.configure(text="No novels found\n\nTry another title or author." if self.search.get() else "A home for your next read\n\nAdd a novel link, or load the catalogue to browse.")
+                self.empty_label.place(relx=.5, rely=.5, anchor="center")
+            self.render_selection()
         finally:
             lib.close()
 
@@ -180,17 +103,23 @@ class App:
         selection = self.table.selection()
         if len(selection) == 1 and selection[0] in self.items:
             self.url.set(self.items[selection[0]]["url"])
+        self.render_selection()
 
-    def run_job(self, job):
+    def run_job(self, job, title="Preparing your download", return_page=None):
         if self.busy:
             return
         self.busy = True
+        self.job_error = False
+        self.job_return_page = return_page
         self.stop.clear()
         for b in self.controls:
             b.configure(state="disabled")
-        self.pause_button.configure(state="normal")
-        self.progress.start(12)
-
+        self.pause_button.configure(text="Pause", state="normal")
+        self.pause_button.grid()
+        self.current = {}
+        self.show_current_progress({"title": title, "saved": 0, "total": 0, "phase": "preparing"})
+        self.footer_status.set("Working · You can browse Library and Settings while this job runs.")
+        self.show_page("Downloads")
         def work():
             lib = None
             try:
@@ -216,13 +145,13 @@ class App:
             n = client.discover(value, report)
             lib.save_index(n)
             report(f'Indexed {len(n["chapters"]):,} available chapters for {n["title"]}. Select it to download.')
-        self.run_job(job)
+        self.run_job(job, title="Adding your novel", return_page="Library")
 
     def load_catalogue(self):
         def job(lib, client, report):
             lib.catalogue(client.catalogue(report))
             report("Catalogue saved. Select one or more novels to download.")
-        self.run_job(job)
+        self.run_job(job, title="Loading the catalogue", return_page="Library")
 
     def selected(self):
         selected = [dict(self.items[i]) for i in self.table.selection() if i in self.items]
@@ -243,14 +172,14 @@ class App:
             if limit is None:
                 queued = DownloadQueue(lib)
                 queued.enqueue(selected, formats)
-                queued.run(client, report, lambda value: self.events.put(("queue", value)))
+                queued.run(client, report, lambda value: self.events.put(("queue", value)), current=lambda value: self.events.put(("current", value)))
                 return
             for n in selected:
                 client.check()
                 if not n.get("slug"):
                     n = client.discover(n["url"], report)
                     lib.save_index(n)
-                s = lib.download(n["slug"], client, report, limit)
+                s = lib.download(n["slug"], client, report, limit, progress=lambda value: self.events.put(("current", value)))
                 report(f'{n["title"]}: {s["saved"]:,}/{s["total"]:,} saved, {s["failed"]} failed. Use Export selected to create books.')
                 if formats and s["saved"] and s["saved"] == s["total"]:
                     client.check()
@@ -258,17 +187,52 @@ class App:
         self.run_job(job)
 
     def show_queue_progress(self, value):
-        self.queue_status.set(f"Queue: {value['completed']}/{value['total']} novels completed; {value['failed']} need attention. "
-                              f"{value['saved']:,}/{value['chapters']:,} chapters saved across {value['indexed']} indexed novels.")
-        self.queue_progress.configure(maximum=max(1, value["total"]), value=value["completed"])
-
-    def save_queue_preference(self):
+        self.queue_status.set(f"{value['completed']}/{value['total']} completed · {value['failed']} need attention")
         lib = Library()
         try:
-            with lib.db:
-                lib.db.execute("INSERT OR REPLACE INTO settings VALUES ('auto_resume_queue', ?)", ("true" if self.auto_resume.get() else "false",))
+            items = DownloadQueue(lib).items()
         finally:
             lib.close()
+        self.queue_items = {item["url"]: item for item in items}
+        states = {"pending": "Waiting", "running": "Downloading", "failed": "Needs attention", "completed": "Completed"}
+        for item in items:
+            values = (item["title"], states[item["state"]])
+            if self.queue_table.exists(item["url"]):
+                self.queue_table.item(item["url"], values=values, tags=(item["state"],))
+            else:
+                self.queue_table.insert("", "end", iid=item["url"], values=values, tags=(item["state"],))
+        for iid in self.queue_table.get_children():
+            if iid not in self.queue_items:
+                self.queue_table.delete(iid)
+        self.show_queue_error()
+        self.update_actions()
+
+    def show_current_progress(self, value):
+        self.current = value
+        self.current_title.set(value.get("title", "Working…"))
+        total, saved = value.get("total", 0), value.get("saved", 0)
+        phase = value.get("phase", "downloading")
+        self.progress.stop()
+        if total:
+            percent = min(100, saved * 100 / total)
+            self.progress.configure(mode="determinate", maximum=total, value=saved)
+            self.percent.set(f"{percent:.0f}%")
+            self.chapter_status.set(f"{saved:,} of {total:,} chapters saved" + (" · Exporting" if phase == "exporting" else ""))
+        else:
+            self.percent.set("")
+            self.chapter_status.set({"indexing": "Collecting this novel’s chapter index…", "completed": "No chapters available", "preparing": "Getting things ready…"}.get(phase, "Working…"))
+            self.progress.configure(mode="indeterminate", maximum=100, value=0)
+            if self.busy:
+                self.progress.start(12)
+        if value.get("chapter"):
+            self.status.set(value["chapter"])
+        for iid, novel in self.items.items():
+            if novel.get("slug") == value.get("slug") and value.get("slug"):
+                novel["_summary"] = {"saved": saved, "total": total, "failed": value.get("failed", 0)}
+                state = {"completed": "Completed", "exporting": "Exporting", "indexing": "Indexing"}.get(phase, "Downloading")
+                self.table.item(iid, values=(f"{saved:,} / {total:,}", state))
+                if self.table.selection() == (iid,):
+                    self.detail_chapters.configure(text=f"{saved:,} of {total:,} chapters saved")
 
     def archive_all(self):
         formats = [f for f, value in self.formats.items() if value.get()] if self.auto_export.get() else []
@@ -281,12 +245,12 @@ class App:
             lib.catalogue(items)
             queued = DownloadQueue(lib)
             queued.enqueue(items, formats)
-            queued.run(client, report, lambda value: self.events.put(("queue", value)))
+            queued.run(client, report, lambda value: self.events.put(("queue", value)), current=lambda value: self.events.put(("current", value)))
         self.run_job(job)
 
     def resume_queue(self):
         def job(lib, client, report):
-            DownloadQueue(lib).run(client, report, lambda value: self.events.put(("queue", value)))
+            DownloadQueue(lib).run(client, report, lambda value: self.events.put(("queue", value)), current=lambda value: self.events.put(("current", value)))
         self.run_job(job)
 
     def queue_details(self):
@@ -313,9 +277,10 @@ class App:
                 if not n.get("slug"):
                     raise ValueError("Download the selected novel first.")
                 report(f'Creating books for {n["title"]}…')
+                self.events.put(("current", {"slug": n["slug"], "title": n["title"], **lib.summary(n["slug"]), "phase": "exporting"}))
                 paths = export_book(lib, n["slug"], formats)
                 report("Created: " + ", ".join(str(p.name) for p in paths))
-        self.run_job(job)
+        self.run_job(job, title="Preparing your books")
 
     def poll(self):
         try:
@@ -323,13 +288,21 @@ class App:
                 kind, text = self.events.get_nowait()
                 if kind == "queue":
                     self.show_queue_progress(text)
+                elif kind == "current":
+                    self.show_current_progress(text)
                 elif kind == "done":
                     self.busy = False
                     self.progress.stop()
                     for b in self.controls:
                         b.configure(state="normal")
-                    self.pause_button.configure(state="disabled")
+                    self.pause_button.grid_remove()
                     self.refresh()
+                    self.update_actions()
+                    self.footer_status.set("Job stopped · See Downloads for details." if self.job_error else "Paused · Your progress is saved." if self.stop.is_set() else "Job finished · Your progress is saved.")
+                    if self.stop.is_set() and self.current:
+                        self.chapter_status.set(self.chapter_status.get() + " · Paused")
+                    if self.job_return_page and not self.job_error and not self.stop.is_set():
+                        self.show_page(self.job_return_page)
                 else:
                     self.status.set(text)
                     self.log.configure(state="normal")
@@ -339,10 +312,12 @@ class App:
                     self.log.see("end")
                     self.log.configure(state="disabled")
                     if kind == "error":
+                        self.job_error = True
+                        self.footer_status.set("Job stopped · See Downloads for details.")
                         messagebox.showerror("Job stopped", text)
         except queue.Empty:
             pass
-        self.window.after(150, self.poll)
+        self.poll_timer = self.window.after(150, self.poll)
 
     def open_output(self):
         try:
@@ -367,7 +342,7 @@ class App:
         dialog.resizable(False, False)
         body = ttk.Frame(dialog, padding=20)
         body.pack(fill="both", expand=True)
-        ttk.Label(body, text="Clear the current library", font=("Georgia", 18)).pack(anchor="w")
+        ttk.Label(body, text="Clear the current library", font=(self.font, 16, "bold")).pack(anchor="w")
         ttk.Label(body, text="Removes the saved catalogue, chapter index, downloaded chapter pages, and download progress.", wraplength=510).pack(anchor="w", pady=(10, 8))
         ttk.Label(body, text=f"Library: {library_directory()}", wraplength=510).pack(anchor="w", pady=(0, 10))
         books = tk.BooleanVar(value=False)
@@ -377,18 +352,15 @@ class App:
         books_check.pack(anchor="w")
         preferences_check = ttk.Checkbutton(body, text="Also reset saved preferences and clear the startup log", variable=preferences)
         preferences_check.pack(anchor="w", pady=(4, 10))
-
         def folder_option():
             for control in (books_check, preferences_check):
                 control.configure(state="disabled" if remove_folder.get() else "normal")
-
         ttk.Checkbutton(body, text="Remove the app data folder completely and exit", variable=remove_folder, command=folder_option).pack(anchor="w")
         ttk.Label(body, text=f"Deletes everything inside {user_data_directory()}, including books and preferences. Custom libraries outside this folder are kept.", wraplength=510).pack(anchor="w", pady=(4, 10))
         ttk.Label(body, text="This cannot be undone. Exported books are kept unless selected above. The application and unrelated files are kept.", wraplength=510).pack(anchor="w", pady=(0, 12))
         actions = ttk.Frame(body)
         actions.pack(fill="x")
         ttk.Button(actions, text="Cancel", command=dialog.destroy).pack(side="right")
-
         def perform():
             try:
                 if remove_folder.get():
@@ -412,7 +384,6 @@ class App:
                 dialog.destroy()
             except Exception as exc:
                 messagebox.showerror("Could not clear all data", f"Some files may be in use by another app window. Close other copies and try again.\n\n{exc}", parent=dialog)
-
         ttk.Button(actions, text="Clear data", command=perform).pack(side="right", padx=8)
         dialog.bind("<Escape>", lambda _: dialog.destroy())
         dialog.update_idletasks()
@@ -433,6 +404,8 @@ class App:
             choose_library_directory(chosen)
             self.url.set("")
             self.search.set("")
+            self._load_preferences()
+            self.library_path.configure(text=str(library_directory()))
             self.refresh()
             self.status.set(f"Library: {chosen}")
         except Exception as exc:
@@ -443,6 +416,12 @@ class App:
             self.stop.set()
             self.status.set("Stopping safely. Close the window again once the current job finishes.")
             return
+        for timer in (getattr(self, "poll_timer", None), getattr(self, "resume_timer", None)):
+            if timer:
+                try:
+                    self.window.after_cancel(timer)
+                except tk.TclError:
+                    pass
         self.window.destroy()
 
     def mainloop(self):

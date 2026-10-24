@@ -26,17 +26,29 @@ def run(directory):
         app = App()
         app.window.update()
         assert app.window.title() == f"{APP_NAME} {VERSION}"
-        assert app.support_button.winfo_rooty() < app.table.winfo_rooty()
-        assert app.url_label.winfo_rooty() < app.url_entry.winfo_rooty()
-        assert app.url_entry.winfo_height() == app.index_button.winfo_height() == app.catalogue_button.winfo_height()
-        app.window.geometry("840x760")
+        assert app.active_page == "Library" and app.table.winfo_ismapped()
+        assert not app.support_button.winfo_ismapped() and not app.clear_button.winfo_ismapped()
+        assert "disabled" in app.download_button.state()
+        app.window.geometry("1040x700")
+        app.window.update()
+        assert app.index_button.winfo_ismapped() and app.catalogue_button.winfo_ismapped()
+        app.show_page("Settings")
         app.window.update()
         assert app.support_button.winfo_ismapped() and app.clear_button.winfo_ismapped()
-        assert app.log.winfo_height() >= 40
+        assert app.clear_button.winfo_rooty() + app.clear_button.winfo_height() < app.window.winfo_rooty() + app.window.winfo_height()
+        app.show_page("Downloads")
+        app.window.update()
         assert app.archive_button.winfo_ismapped() and app.resume_button.winfo_ismapped()
-        assert app.queue_progress.winfo_ismapped()
+        assert not app.log.winfo_ismapped()
+        app.toggle_activity()
+        app.window.update()
+        assert app.log.winfo_height() >= 40 and app.log.winfo_ismapped()
+        app.show_current_progress({"title": "Example novel", "total": 767, "saved": 176, "phase": "downloading"})
+        assert app.percent.get() == "23%"
+        assert app.progress["value"] == 176 and str(app.progress["mode"]) == "determinate"
+        app.toggle_activity()
         app.close()
-        report["checks"].append("Branded desktop window, app icon, visible top support controls, and clear-data button")
+        report["checks"].append("Library/Downloads/Settings navigation, compact layout, chapter percentage, and collapsed activity")
         lib = Library()
         chapter = {"url": "https://lnmtl.com/chapter/packaging-test", "title": "Colors and emphasis", "number": 1,
                    "part": None, "special": False, "volume": 1, "volume_title": "Sample", "position": 1, "ordinal": 1}
@@ -50,6 +62,36 @@ def run(directory):
         with lib.db:
             lib.db.execute("UPDATE chapters SET html=? WHERE url=?", (html, chapter["url"]))
         report["checks"].append("Writable local SQLite library")
+        app = App()
+        app.window.update()
+        matching = [iid for iid, novel in app.items.items() if novel["url"] == "https://lnmtl.com/novel/packaging-test"]
+        app.table.selection_set(matching[0])
+        app.render_selection()
+        assert app.detail_title["text"] == "Reading Library - Offline Package Test"
+        assert "disabled" not in app.export_button.state()
+        assert app.poster_photo(lib.novel("packaging-test")).height() == 42
+        # Exercise JPEG decoding inside the frozen app as LNMTL posters use JPEG.
+        import io
+        from PIL import Image
+        jpeg = io.BytesIO()
+        with Image.open(Path(__file__).resolve().parent.parent / "assets" / "app-64.png") as poster:
+            poster.convert("RGB").save(jpeg, format="JPEG")
+        assert app.poster_photo({"url": "jpeg-test", "poster": {"data": base64.b64encode(jpeg.getvalue()).decode("ascii")}}).height() == 42
+        app.sample.set(False)
+        app.auto_export.set(True)
+        app._save_preferences()
+        app.sample.set(True)
+        app.auto_export.set(False)
+        app._load_preferences()
+        assert app.sample.get() is False and app.auto_export.get() is True
+        app.search.set("Package verification")
+        app.window.update()
+        assert len(app.items) == 1
+        app.search.set("No matching title exists")
+        app.window.update()
+        assert len(app.items) == 0 and "disabled" in app.download_button.state()
+        app.close()
+        report["checks"].append("PNG/JPEG poster thumbnails, selection actions, author search, and saved preferences")
         from .download_queue import DownloadQueue
         queued = DownloadQueue(lib)
         queued.enqueue([lib.novel("packaging-test")])

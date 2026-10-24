@@ -54,11 +54,19 @@ class QueueTests(unittest.TestCase):
         exporter = Mock()
         client = FakeClient()
         updates = []
-        result = self.queue.run(client, progress=updates.append, exporter=exporter)
+        current = []
+        result = self.queue.run(client, progress=updates.append, exporter=exporter, current=current.append)
         self.assertEqual(result["completed"], 2)
         self.assertEqual(result["saved"], 4)
         self.assertEqual(exporter.call_count, 2)
         self.assertEqual(exporter.call_args.args[2], ["epub", "html"])
+        for slug in ("one", "two"):
+            chapter_updates = [value for value in current if value["slug"] == slug and value["phase"] == "downloading"]
+            self.assertEqual([value["saved"] for value in chapter_updates], [0, 1, 2])
+            self.assertTrue(all(value["total"] == 2 for value in chapter_updates))
+        self.assertIn("indexing", [value["phase"] for value in current])
+        self.assertIn("exporting", [value["phase"] for value in current])
+        self.assertEqual(current[-1]["phase"], "completed")
         self.queue.run(client, exporter=exporter)
         self.assertEqual(exporter.call_count, 2)
         self.assertEqual(len(client.fetches), 4)
@@ -77,8 +85,11 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(self.lib.summary("one")["saved"], 1)
         self.assertEqual(self.queue.items()[0]["attempts"], 0)
         resumed = FakeClient()
-        result = self.queue.run(resumed)
+        current = []
+        result = self.queue.run(resumed, current=current.append)
         self.assertEqual(result["completed"], 2)
+        first_novel_progress = [value for value in current if value["slug"] == "one" and value["phase"] == "downloading"]
+        self.assertEqual(first_novel_progress[0]["saved"], 1)
         self.assertEqual(len(resumed.fetches), 3)
         self.assertNotIn("https://lnmtl.com/chapter/one-1", resumed.fetches)
 

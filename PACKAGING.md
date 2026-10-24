@@ -6,9 +6,9 @@ The same Python source is packaged separately on each operating system. The pack
 
 | Target | Download | How to open |
 | --- | --- | --- |
-| Windows 10/11 x64 | `LNMTLWebToEbook-1.1.0-windows-x64.exe` | Double-click the portable executable. No installer or administrator access is needed. |
-| macOS Apple Silicon | `LNMTLWebToEbook-1.1.0-macos-arm64.dmg` | Open the disk image and drag the app to Applications. |
-| macOS Intel | `LNMTLWebToEbook-1.1.0-macos-x64.dmg` | Same, using the Intel build. |
+| Windows 10/11 x64 | `LNMTLWebToEbook-1.2.0-windows-x64.exe` | Double-click the portable executable. No installer or administrator access is needed. |
+| macOS Apple Silicon | `LNMTLWebToEbook-1.2.0-macos-arm64.dmg` | Open the disk image and drag the app to Applications. |
+| macOS Intel | `LNMTLWebToEbook-1.2.0-macos-x64.dmg` | Same, using the Intel build. |
 | Ubuntu 24.04+ x64 | `.deb` or `.tar.gz` | Install the Debian package with the system's package installer, or extract and run the executable. |
 
 Linux is not a universal binary for every distribution. The first Linux target is Ubuntu 24.04+ x64; other distributions need compatible glibc and Chromium's system libraries. The `.deb` declares these dependencies. The portable tarball requires them to be installed already. A graphical desktop is required. No ARM Linux/Windows artifact is currently configured.
@@ -51,7 +51,7 @@ Outputs in `release/` include the platform download, SHA-256 checksums, third-pa
 
 ## Automated builds
 
-`.github/workflows/build.yml` builds Windows x64, macOS ARM64, macOS Intel, and Ubuntu 24.04 x64 on their respective GitHub runners. It runs on manual dispatch or a `v*` tag. Manual runs save download artifacts. A version tag matching the app version, such as `v1.1.0`, also publishes a GitHub Release after all four targets pass. The publish job verifies the platform reports and checksums before uploading. Downloaded novels, local databases, settings, and the working virtual environment are excluded. Mac/Linux downloads cannot be built or tested natively from the Windows workspace.
+`.github/workflows/build.yml` builds Windows x64, macOS ARM64, macOS Intel, and Ubuntu 24.04 x64 on their respective GitHub runners. It runs on manual dispatch or a `v*` tag. Manual runs save download artifacts. A version tag matching the app version, such as `v1.2.0`, also publishes a GitHub Release after all four targets pass. The publish job verifies the platform reports and checksums before uploading. Downloaded novels, local databases, settings, and the working virtual environment are excluded. Mac/Linux downloads cannot be built or tested natively from the Windows workspace.
 
 ## Signing and distribution status
 

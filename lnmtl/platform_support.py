@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 APP_NAME = "LNMTL Web to Ebook"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 SUPPORT_URL = "https://www.paypal.biz/omnipotentcore"
 SOURCE_ROOT = Path(__file__).resolve().parent.parent
 

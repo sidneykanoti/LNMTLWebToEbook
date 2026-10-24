@@ -1,3 +1,4 @@
 beautifulsoup4==4.15.0
 requests==2.34.2
 playwright==1.64.0
+pillow==13.0.0

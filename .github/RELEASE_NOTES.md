@@ -1,26 +1,25 @@
-LNMTL Web to Ebook 1.1.0 saves the chapters available on LNMTL and exports readable EPUB, PDF, and HTML books with colors, italics, and bold text preserved.
+LNMTL Web to Ebook 1.2.0 saves the chapters available on LNMTL and exports readable EPUB, PDF, and HTML books with colors, italics, and bold text preserved.
 
 
-This minor release adds persistent bulk downloads while preserving existing libraries:
+This minor release redesigns the desktop interface while preserving existing libraries, saved chapters, and queues:
 
-- Download the entire catalogue or queue selected full novels.
-- Pause and resume saved jobs after interruptions; optionally resume when opening the app.
-- Track overall novel/chapter progress and inspect saved errors.
-- Retry failed novels and exports automatically up to three times per run while continuing other jobs.
-- Optionally export each completed novel in the selected formats.
-- Include posters, authors, and synopses in offline EPUB, PDF, and HTML books, with EPUB cover thumbnails.
+- **Library:** poster thumbnails, titles and authors, search, a selected-book synopsis panel, and focused Download/Export actions.
+- **Downloads:** one chapter-progress bar with saved count and percentage, a clear Pause action, queue status, and inline saved errors.
+- **Settings:** export formats, sample mode, automatic export/resume, storage, support, and cleanup grouped away from daily actions.
+- The detailed activity log is collapsed by default. Preferences are saved in the active library, and downloads can continue while switching views.
+- The current-novel percentage includes chapters saved before resuming. Poster previews support JPEG and PNG without an internet connection.
 
-For existing novels, refresh their index once and export again to collect posters and synopses. Saved chapters are retained. Whole-catalogue downloads ignore sample mode; the computer must stay awake and the app must remain open to download.
+Whole-catalogue downloads, bounded retries, automatic exports, and book covers/synopses from version 1.1.0 remain available. **Download entire catalogue** is in Downloads; **Refresh details** is in Library; sample mode and export formats are in Settings. The default sample mode still saves three new chapters per selected novel.
 
 Choose the download for your computer:
 
 | Computer | Download |
 | --- | --- |
-| Windows 10/11, Intel/AMD 64-bit | `LNMTLWebToEbook-1.1.0-windows-x64.exe` |
-| Mac with Apple Silicon | `LNMTLWebToEbook-1.1.0-macos-arm64.dmg` |
-| Mac with Intel processor | `LNMTLWebToEbook-1.1.0-macos-x64.dmg` |
-| Ubuntu 24.04+ 64-bit | `LNMTLWebToEbook-1.1.0-linux-x64.deb` |
-| Compatible Linux 64-bit, portable archive | `LNMTLWebToEbook-1.1.0-linux-x64.tar.gz` |
+| Windows 10/11, Intel/AMD 64-bit | `LNMTLWebToEbook-1.2.0-windows-x64.exe` |
+| Mac with Apple Silicon | `LNMTLWebToEbook-1.2.0-macos-arm64.dmg` |
+| Mac with Intel processor | `LNMTLWebToEbook-1.2.0-macos-x64.dmg` |
+| Ubuntu 24.04+ 64-bit | `LNMTLWebToEbook-1.2.0-linux-x64.deb` |
+| Compatible Linux 64-bit, portable archive | `LNMTLWebToEbook-1.2.0-linux-x64.tar.gz` |
 
 Python and the PDF engine are included. The portable Linux archive still needs compatible system libraries; the Ubuntu package declares its dependencies. These targets do not include Windows/Linux ARM or every Linux distribution.
 

@@ -30,7 +30,7 @@ def command(args, **kwargs):
 def notices(path):
     lines = ["# Third-party components", "", "This application bundles Python, Tcl/Tk, Chromium Headless Shell, and these Python packages.",
              "Chromium and Playwright license/notice files are retained in their bundled directories.", "Python and Tcl/Tk license files are included by PyInstaller.", ""]
-    for name in ("beautifulsoup4", "soupsieve", "requests", "urllib3", "idna", "certifi", "charset-normalizer", "playwright", "pyee", "greenlet"):
+    for name in ("beautifulsoup4", "soupsieve", "requests", "urllib3", "idna", "certifi", "charset-normalizer", "playwright", "pyee", "greenlet", "pillow"):
         dist = importlib.metadata.distribution(name)
         lines += [f"## {name} {dist.version}", ""]
         files = [f for f in dist.files or [] if any(p.lower().startswith(("license", "copying", "notice")) for p in f.parts[-2:])]

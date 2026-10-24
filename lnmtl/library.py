@@ -79,8 +79,13 @@ class Library:
         r = self.db.execute("SELECT COUNT(*), COALESCE(SUM(html IS NOT NULL),0), SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END) FROM chapters WHERE slug=?", (slug,)).fetchone()
         return {"total": r[0], "saved": r[1], "failed": r[2] or 0}
 
-    def download(self, slug, client=None, report=lambda _: None, limit=None):
+    def download(self, slug, client=None, report=lambda _: None, limit=None, progress=lambda _: None):
         client = client or Client()
+        summary = self.summary(slug)
+        saved = summary["saved"]
+        title = self.novel(slug)["title"]
+        current = {"slug": slug, "title": title, "total": summary["total"], "saved": saved, "phase": "downloading"}
+        progress(dict(current))
         # Do not load every saved chapter body into memory just to resume a novel.
         pending = [dict(r) for r in self.db.execute(
             "SELECT url, metadata FROM chapters WHERE slug=? AND html IS NULL ORDER BY ordinal", (slug,))]
@@ -103,6 +108,9 @@ class Library:
                 with self.db:
                     self.db.execute("UPDATE chapters SET html=?,raw_path=?,sha256=?,downloaded_at=?,error=NULL WHERE url=?",
                         (clean, str(path.relative_to(self.root)), digest, datetime.now(timezone.utc).isoformat(), row["url"]))
+                saved += 1
+                current.update(saved=saved, chapter=f"#{c['number']}: {c['title']}")
+                progress(dict(current))
             except (Stopped, AccessBlocked):
                 raise
             except Exception as exc:
